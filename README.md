@@ -19,9 +19,9 @@ github = "jsmith"
 Make sure you have 'title', 'date' and 'authors' section available.
 ```
 +++
-title = "Tokio Conf 2026"
+title = "Joah Smith's first blog"
 date = "2026-03-02"
-authors = ["seungjin"]
+authors = ["johnsmith"]
 +++
 ```
 
