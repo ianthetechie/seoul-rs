@@ -1,7 +1,7 @@
 +++
 title = "Tokio Conf 2026"
 date = "2026-03-02"
-author = "seungjin"
+authors = ["seungjin"]
 +++
 
 

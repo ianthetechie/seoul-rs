@@ -6,15 +6,19 @@
 {% block main %}
   {%- if not page.extra.menu -%}
     <h1>{{ page.title }}</h1>
+    <p>
     {%- if page.date %}
-      <p>
         <i>
           <time datetime="{{ page.date | date(format='%+') }}" pubdate>
             {{- page.date | date(format=config.extra.date_format) -}}
           </time>
         </i>
-      </p>
     {%- endif %}
+    {% for author_id in page.authors %}
+       {% set author = config.extra.authors[author_id] %}
+       , <b>{{ author.name }}</b>
+    {% endfor %}
+    </p>
   {%- endif %}
   {%- if config.extra.table_of_contents.show and not page.extra.hide_table_of_contents and page.toc %}
     <details {% if config.extra.table_of_contents.visible_on_load %}open{% endif %}>
@@ -24,12 +28,6 @@
   {%- endif %}
   <main>
     {{ page.content | safe }}
-
-    {% for author_id in page.authors %}
-       {% set author = config.extra.authors[author_id] %}
-       <p>{{ author.name }}</p>
-    {% endfor %}
-
   </main>
   <p>
     {%- if page.taxonomies %}
