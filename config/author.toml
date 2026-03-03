@@ -1,0 +1,8 @@
+
+
+# About two empty lines are intended
+# 
+[extra.authors.seungjin]
+name = "Seungjin Kim"
+bio = "Rust developer in Seoul"
+github = "seungjin"

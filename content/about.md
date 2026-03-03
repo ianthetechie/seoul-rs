@@ -1,7 +1,8 @@
 +++
 title = "About"
+date = "2026-03-02"
+authors = ["seungjin"]
 +++
-
 
 Soruce:  
 [https://github.com/seoul-rs/seoul-rs](https://github.com/seoul-rs/seoul-rs)

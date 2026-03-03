@@ -61,7 +61,7 @@ language_switcher = true
 hide_made_with_line = true
 translations = [
   { code = "en", name = "English" },
-  { code = "ko", name = "한국어" },
+  { code = "ko", name = "Korean" },
 ]
 
 
@@ -89,11 +89,3 @@ url = "@/blog/_index.md"
 name = "About"
 name_ko = "About"
 url = "@/about.md"
-
-
-# About two empty lines are intended
-# 
-[extra.authors.seungjin]
-name = "Seungjin Kim"
-bio = "Rust developer in Seoul"
-github = "seungjin"

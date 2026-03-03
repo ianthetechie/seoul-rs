@@ -1,7 +1,9 @@
 +++
 title = "Tokio Conf 2026"
 date = "2026-03-02"
+authors = ["seungjin"]
 +++
+
 
 Tokio Conf 2026, Portland, Oregon, April 20 - 22, 2026
 
