@@ -9,7 +9,7 @@ tags = ["rust", "macro"]
 If you aren't very familiar with Rust macros and have always wondered if they are actually necessary for everyday programming—and if you’re a math or CS enthusiast who prefers RPN and HP calculators over TI ones—this is for you.  
 
 
-[https://rreverser.com/writing-complex-macros-in-rust/](https://rreverser.com/writing-complex-macros-in-rust/])
+[https://rreverser.com/writing-complex-macros-in-rust/](https://rreverser.com/writing-complex-macros-in-rust/)
 
 
 
