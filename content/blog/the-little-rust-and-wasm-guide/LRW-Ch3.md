@@ -1,29 +1,31 @@
 +++
-title = "[WIP][LRW] 3. 세상속으로 나온 WASM (Feat 웹브라우저)"
-date = "2026-03-18"
+title = "[WIP][LRW] 3. WASM Meets the Web (feat. Web Browsers)"
+date = "2026-03-19"
 [taxonomies]
 authors = ["Seungjin Kim"]
 tags = ["wasm", "rust"]
 +++
 
-  첫 번째 챕터에서 구현한 [pub hello_world()](../lrw-ch1#code_hello_world) 함수는 "Hello World" 문자열을 반환하는 단순한 Rust 코드이며, 본래 Rust는 별도의 실행 환경(Runtime)을 필요로 하지 않는 언어이다. 하지만 컴파일된 Wasm 바이너리는 'Wasm 런타임' 위에서 동작하는 것을 전제로 설계되기에, 해당 환경을 통해서만 외부와 통신할 수 있다.  
+  The [pub hello_world()](../lrw-ch1#code_hello_world) function implemented in the previous chapter is a very basic Rust function that returns the string "Hello Word". Rust itself does not require a separate runtime environment. However, compiled Wasm binaries are designed to run on a **Wasm runtime**, and can communicate with the outside world only through that environment.  
 
-  따라서 Rust의 표준 라이브러리 외에도, 실행 환경과의 인터페이스를 연결해 줄 **별도의 라이브러리(예: wasm-bindgen)** 가 필요하다. Wasm의 대표적인 실행 환경인 웹브라우저에서는 자바스크립트 엔진을 거쳐 브라우저 API에 접근함으로써 실제 기능을 수행하게 된다.  
+  Therefore, in addition to Rust’s standard library, **an additional library(e.g., wasm-bindgen)** is required to bridge the interface with the execution environment. In a web browser — one of the primary execution environments for Wasm — actual functionality is achieved by accessing browser APIs through the JavaScript engine.
 
-  본 챕터에서는 wasm-bindgen을 통해 자바스크립트 엔진과 소통하는 방법을 살펴보고, 더 나아가 브라우저 API를 활용해 Wasm 모듈 내부의 결과물을 사용자에게 전달하는 과정을 보도록 하겠다. 또한, 효율적인 개발과 빌드 통합을 위한 wasm-pack 사용법과, Rust의 비동기(Asynchronous) 환경을 브라우저와 연결해 주는 **wasm_bindgen_futures**에 대해서도 보도록 하겠다.  
+  We will explore how to communicate with the JavaScript engine from your Rust-based WASM file using wasm-bindgen, and further examine how to pass results produced within a Wasm module to users by leveraging browser APIs. We will also cover how to use wasm-pack to create an efficient and integrated development environment. Following these stages, we will dive deeper into wasm_bindgen_futures to handle Rust's asynchronous programming style alongside JavaScript’s Promise-based approach. Finally, we will look over web-sys and js-sys—the crates you will use most often to implement real-world apps with minimal JavaScript glue code, even though your Wasm code still accesses the browser DOM through the JavaScript world. 
+
   
 
 ### 1. Wasm-bindgen
 
-[Wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen)은 WASM 모듈과 브라우저 런타임안의  자바스크립트 엔진 사이를 연결해주는 역활을 한다.    
+[Wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) bridges Wasm modules and the JavaScript engine within your web browser.
 
-#### 1.1 **wasm_bindgen** 을 이용하여 Wasm 파일 만들기
+#### 1.1 Wasm file with **wasm_bindgen**  
 
-  프로젝트 생성    
+  New project with **Cargo** command      
   ```shell
   > cargo new --lib hello-world
   ```
-  `Cargo.toml` 과 `src/lib.rs` 을 다음의 파일들로 바꾸어 보도록하자.
+
+  Let's replace the contents of **Cargo.toml** and **src/lib.rs** with the following code.  
 
   {{ anchor(id="code_cargo_toml") }}`Cargo.toml`
   ```toml
@@ -39,7 +41,8 @@ tags = ["wasm", "rust"]
   chrono = "0.4"
   wasm-bindgen = "0.2"
   ```
-  앞서 생성했던 [Cargo.toml](../lrw-ch1#cargo_toml)과 다른 점은 `dependencies`에 `chrono`와 `wasm-bindgen`이 추가되었다는 것이다. `chrono`는 Rust에서 현재 시간을 가져오는 예제 로직을 구현하기 위해 사용하며, `wasm-bindgen`은 Rust로 빌드된 WASM 파일이 런타임을 통해 외부 자바스크립트와 통신할 수 있게 해주는 핵심 라이브러리이다.
+
+  The difference from the previous **Cargo.toml** is that **chrono** and **wasm-bindgen** have been added to the dependencies. We use **chrono** to implement logic for fetching the current time, and **wasm-bindgen** is the core library that enables communication between the Rust-built Wasm module and the JavaScript runtime.  
   
   {{ anchor(id="code_src_lib_rs") }}`src/lib.rs`
   ```rust
@@ -65,37 +68,39 @@ tags = ["wasm", "rust"]
     pub fn add(a: f64, b: f64) -> f64 {
         a + b
     }
-  ```
-  #[wasm_bindgen] 매크로가 적용된 함수들은 추후 자바스크립트에서 호출될 함수들이다. 현재 시간을 반환하는 now(), 자바스크립트의 alert() 창을 띄우는 pop_message(&str), 그리고 더하기 연산을 수행하는 add(f64, f64) 함수를 확인할 수 있다.
-
-  Wasm 파일 만들기
+  ```  
+  Functions annotated with the **#[wasm_bindgen]** attribute macro are intended to be called from JavaScript. You can see the **now()** function for returning the current time, **pop_message(&str)** for triggering a JavaScript **alert()**, and **add(f64, f64)** for performing addition.
+  
+  **Generating WASM file**
   ```shell
   ❯ cargo build --release --target wasm32-unknown-unknown
     Finished `release` profile [optimized] target(s) in 0.16s
   ```
-  `target/wasm32-unknown-unknown/release/hello_wasm.wasm`을 확인할 수 있다.
+  You should see `target/wasm32-unknown-unknown/release/hello_wasm.wasm`.
 
-#### 1.2. wasm-bindgen으로 java(type)script bind 파일 만들기
+#### 1.2. Creating Java(Type)Script files with wasm-bindgen
 
-  wasm-bindgen은 러스트 크레이트(Crate)인 동시에 CLI 도구이기도 하다. 크레이트로서의 wasm-bindgen은 컴파일러가 생성한 WASM 파일과 자바스크립트 사이의 상호 운용성을 담당하며, CLI 도구는 빌드된 WASM을 가지고 자바(타입)스크립트에서 손쉽게 호출할 수 있도록 해주는 바인딩 파일을 자동으로 생성해 준다.  
-  
-  설치하기. 
+  **wasm-bindgen** serves as both a Rust crate and a CLI tool. As a crate, it handles the interoperability between the Wasm modules generated by the compiler and JavaScript. As a CLI tool, it automatically generates the necessary bindings and glue code, allowing you to seamlessly call your Wasm functions from JavaScript or TypeScript.
+
+  Installation   
   ```
   > cargo binstall wasm-bindgen-cli
   ```
-  혹은 [wasm-bindgen 리포지토리](https://github.com/wasm-bindgen/wasm-bindgen) 에서 코드를 가져와 직접 빌드해도 된다.(추천)
+
+  Alternatively, you can clone the code directly from the [wasm-bindgen repository](https://github.com/wasm-bindgen/wasm-bindgen) and build it yourself (which is the approach I personally prefer).
+
   ```shell
   > git clone --depth 1 https://github.com/wasm-bindgen/wasm-bindgen.git && cd wasm-bindgen
   > cargo build --release --package wasm-bindgen-cli
   > install -s -Dm755 target/release/wasm-bindgen -t ~/.cargo/bin
   ```
 
-  이제 앞서서 만든 wasm을 가지고 wasm-bindgen 명령어를 이용하여 브라우저에서 wasm파일을 호출하게 해주는 자바(타입)스크립트를 생성해보자.  
+  Now, let's use the **wasm-bindgen** command to generate the JavaScript(and/or TypeScript) bindings that will allow your browser to interface with the Wasm file we built earlier.
     
   ```
   > wasm-bindgen ./target/wasm32-unknown-unknown/release/hello_wasm.wasm --target web --out-dir ./pkg
   ```
-  `target`이 `web`이고 `pkg` 디렉토리에 결과물을 생성한다.  
+  Set `--target` to `web` and `--out-dir` to `./pkg`. The output will be generated in the `pkg` directory. 
 
   ```shell
   ❯ eza --tree pkg/
@@ -106,9 +111,9 @@ tags = ["wasm", "rust"]
   └── hello_wasm_bg.wasm.d.ts
   ```
 
-  `pkg/hello_wasm.js` 파일을 열어보면, 자바스크립트 환경에서 바로 호출할 수 있도록 내보내기(export)된 Wasm(Rust) 함수들을 확인할 수 있다. 자바스크립트와의 연동을 위해 개발자가 일일이 함수 인터페이스를 재정의할 필요가 없다는 것이 큰 장점이다. 이는 **wasm-bindgen**이 복잡한 연결 코드를 자동으로 생성해주기 때문이다.  
+  If you open **pkg/hello_wasm.js**, you will find the exported Wasm functions ready to be called directly from JavaScript. A major benefit of using **wasm-bindgen** is that developers don't have to manually redefine function interfaces for JavaScript interoperability; the tool automatically generates all the complex glue code for you.  
 
-  이제 웹 환경에서 실제로 호출할 index.html 파일을 생성할 차례이다. 프로젝트 루트(root), 즉 Cargo.toml 파일이 위치한 디렉터리에 index.html 파일을 생성한다.  
+  Now, it's time to create the **index.html** file to see it in action. Create **index.html** in the project root, the same directory where your **Cargo.toml** is located.  
   
   {{ anchor(id="index_html") }}`index.html`
   ```html
@@ -164,35 +169,39 @@ tags = ["wasm", "rust"]
   ```
 
   {{ anchor(id="serve_html") }}`
-  `miniserve`로 이제 준비된 파일들을 서비스 해보자.  
+  Now, let's serve the HTML, JavaScript, and Wasm files we created using **miniserve**.
+
   ```
   > miniserve -p 9099 --index index.html .
   ```
   
-  웹브라우저에서http://localhost:9099 를 확인해보자.  
+  Open your web browser and navigate to http://localhost:9099.  
 
-  ![브라우저 결과](/images/blog/the-little-rust-and-wasm-guide/ch3-miniserve.png)
+  ![Browser result](/images/blog/the-little-rust-and-wasm-guide/ch3-miniserve.png)
 
   ```text
-  miniserve가 모죠?  
+  What is `miniserve`?  
   Miniserve: a CLI tool to serve files and dirs over HTTP  
   https://github.com/svenstaro/miniserve
   ```
 
 ### 2. wasm-pack
 
-  [wasm-pack](https://github.com/drager/wasm-pack)은 앞에서 본 `cargo init`, `wasm-bindgen` 등의 커맨드들을을 하나의 툴로 묶어 개발을 좀더 편하게 해준다. `wasm-pack`을 설치해서 개발을 할경우 따로 `wasm_bindgen`은 설치하지 않아도 된다.  
+  [wasm-pack](https://github.com/drager/wasm-pack) streamlines the development process by integrating various commands like **cargo** and ******wasm-bindgen** into a single tool. If you use **wasm-pack**, there's no need to install **wasm-bindgen-cli** separately, as it handles the underlying environment for you."
   
-#### 2.1 설치
-  
-  [인스톨러](https://drager.github.io/wasm-pack/installer/) 혹은 직접 빌드해서 설치한다.
+#### 2.1 Installation
+
+
+  You can install wasm-pack using the official [installer](https://drager.github.io/wasm-pack/installer/). Alternatively, you can build it from source if you prefer.
+
   ```shell
   > git clone --depth 1 https://github.com/drager/wasm-pack.git && cd wasm-pack
   > cargo build --release
   > install -s -Dm755 target/release/wasm-pack -t ~/.cargo/bin
   ```
 
-  설치 후 `help` 커맨드로 사용법을 볼수있다.  
+  Once installed, you can view the usage instructions using the `help` command.  
+
   ```shell
   ❯ wasm-pack help
   📦 ✨  pack and publish your wasm!
@@ -216,7 +225,7 @@ tags = ["wasm", "rust"]
     -V, --version                Print version
   ```
 
-#### 2.2. wasm-pack을 이용한 프로젝트 생성 
+#### 2.2. Create your project with "wasm-pack"  
 
   ```shell
   ❯ wasm-pack new hello-wasm
@@ -246,7 +255,7 @@ tags = ["wasm", "rust"]
   > 
   ```
 
-  **생성된 프로젝트의 구조**  
+  **Generated project structure**  
   ```shell
   ❯ eza --tree hello-wasm
   hello-wasm
@@ -261,18 +270,19 @@ tags = ["wasm", "rust"]
       └── web.rs
   ```
 
-#### 2.3 코드 작성
-  `wasm_bindgen`의 예제에서 만든 [Cargo.toml](#code_cargo_toml) 과 [src/lib.rs](#code_src_lib_rs)를 그대로 가져와 이용한다.  
+#### 2.3 Code
 
-#### 2.4 빌드
+  We will use the same [Cargo.toml](#code_cargo_toml) and [src/lib.rs](#code_src_lib_rs) files created in the previous **wasm-bindgen** example.  
 
-  **wasm-pack** 을 이용하여 build를 해본다. `--target`은 `web`으로 하면 기본설정으로 정의된 `pkg` 디렉토리에 빌드된 파일을 생성해준다. **wasm_bindgee** 때와는 달리 따로 사전에 **cargo**로 wasm파일을 빌드하지 않아도 wasm 파일 빌드와 자바(타입)스크립트 바인딩파일이 자동으로 생성된다.   
+#### 2.4 Build  
 
+  Let's perform the build using **wasm-pack**. By setting the **--target** to **web**, the generated files will be placed in the default **./pkg** directory. Unlike using **wasm-bindgen directly**, there is no need to manually build the Wasm file with **cargo** beforehand; **wasm-pack** automatically handles both the Wasm compilation and the generation of JavaScript (and TypeScript) bindings in a single step
+ 
   ```
   > wasm-pack build --target web
   ```
 
-  **빌드후 pkg 폴더의 모습**
+  **Generated files in 'pkg' folder after the build**
   ```shell
   ❯ eza --tree pkg/
   pkg
@@ -285,18 +295,17 @@ tags = ["wasm", "rust"]
   └── README.md
   ```
 
-#### 2.5 htlm에서 호출과 결과 보기
+#### 2.5 Calling from HTML and Viewing the Results
 
-  **wasm_bindgen**에 서와 같이 [index.html](#index_html)을 생성해주고 [웹서버를 이용해 확인한다](#serve_html).
-
-  **wasm_bindgen**을 통한 결과와 같은 내용을 활인할 수 있을것이다. **wasm-pack** 은 **Cargo** 와 **wasm_bindgen**을 통해 각각 하던 작업은 하나로 통합함으로서 개발의 효율성을 추구할 수 있다. 
-
+  Create [index.html](#index_html) with the same index.html file we created at **wasm_bindgen** example. Then [check the result on your web browser](#serve_html) .  
+  
+  You should see the same results as we did with **wasm-bindgen**. By integrating the tasks previously handled separately by **Cargo** and **wasm-bindgen**, **wasm-pack** significantly improves development efficiency.  
 
 ### 3. wasm_bindgen_futures
 
-  [wasm_bindgen_futures](https://docs.rs/wasm-bindgen-futures)는 자바스크립트은 Promise와 러스트의 Futures를 서로 연동시켜준다.
+  [wasm_bindgen_futures](https://docs.rs/wasm-bindgen-futures)) bridges the gap between JavaScript Promises and Rust Futures.  
 
-  그럼 러스트의 [Reqwest](https://docs.rs/reqwest/latest/reqwest/) 크레이트를 이용하여 서울, 뉴욕, 베를린의 현재 기온을 Open Metro의 날씨 API를 통해 가져와 웹브라우저에 보여주는 예제를 만들어보자.
+  To demonstrate this, let's build an example that fetches the current temperatures of Seoul, New York, and Berlin using the **reqwest** crate and the Open-Meteo API, then displays them in the browser."
 
   **Cargo.toml**
   ```toml
@@ -389,11 +398,9 @@ tags = ["wasm", "rust"]
   </html>
   ```
 
-  **브라우저 결과**  
-  ![브라우저 결과](/images/blog/the-little-rust-and-wasm-guide/ch3-weather-result.png)
+  **Open your web browser and navigate to http://localhost:9099.**  
+  ![Browser result](/images/blog/the-little-rust-and-wasm-guide/ch3-weather-result.png)
 
----
-Another fun thing?: [Raw API bindings for Web APIs](https://docs.rs/web-sys/latest/web_sys/)
 
 
 

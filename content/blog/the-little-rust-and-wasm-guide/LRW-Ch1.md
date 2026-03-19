@@ -1,5 +1,4 @@
 +++
-draft = true
 title = "[WIP][LRW] 1. Build your first WASM"
 date = "2026-03-15"
 [taxonomies]
